@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" Version="2.27.0" />
+    <PackageReference Include="nats.client" Version="0.10.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.1.0" />
   </ItemGroup>
 
 </Project>

@@ -7,10 +7,11 @@ namespace Subscriber
     {
         static void Main(string[] args)
         {
-            var subscriberService = new SubscriberService();
+            var subscriber = new SubscriberService();
 
-            using(IConnection connection = new ConnectionFactory().CreateConnection()){
-                subscriberService.Run(connection);
+            using (IConnection connection = new ConnectionFactory().CreateConnection())
+            {
+                subscriber.Run(connection);
                 Console.WriteLine("Events listening started. Press any key to exit");
                 Console.ReadKey();
             }
