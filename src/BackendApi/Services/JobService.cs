@@ -5,6 +5,7 @@ using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using NATS.Client;
 using System.Text;
+using StackExchange.Redis;
 
 namespace BackendApi.Services
 {
@@ -12,13 +13,14 @@ namespace BackendApi.Services
     {
         private readonly static Dictionary<string, string> _jobs = new Dictionary<string, string>();
         private readonly ILogger<JobService> _logger;
-        private readonly IConnection _connection;
+        private readonly IConnection _nats;
+        private readonly ConnectionMultiplexer _redis;
 
         public JobService(ILogger<JobService> logger)
         {
             _logger = logger;
-            string uri = "nats://" + Environment.GetEnvironmentVariable("NATS_HOST");
-            _connection = new ConnectionFactory().CreateConnection(uri);
+            _nats = new ConnectionFactory().CreateConnection("nats://" + Environment.GetEnvironmentVariable("NATS_HOST"));
+            _redis = ConnectionMultiplexer.Connect(Environment.GetEnvironmentVariable("REDIS_HOST"));
         }
 
         public override Task<RegisterResponse> Register(RegisterRequest request, ServerCallContext context)
@@ -26,20 +28,28 @@ namespace BackendApi.Services
             string id = Guid.NewGuid().ToString();
             var resp = new RegisterResponse { Id = id };
             _jobs[id] = request.Description;
-            PublishJobCreated(id);
+            PublishNatsMessage(id);
+            PublishRedisMessage(id, request.Description);
             return Task.FromResult(resp);
         }
 
-        private void PublishJobCreated(string id)
+        private void PublishNatsMessage(string id)
         {
             string message = $"JobCreated|{id}";
             byte[] payload = Encoding.Default.GetBytes(message);
-            _connection.Publish("events", payload);
+            _nats.Publish("events", payload);
+        }
+
+        private void PublishRedisMessage(string id, string description)
+        {
+          IDatabase db = _redis.GetDatabase();
+          db.StringSet(id, description);
         }
 
         public void Dispose()
         {
-            _connection.Dispose();
+            _nats.Dispose();
+            _redis.Dispose();
         }
     }
 }

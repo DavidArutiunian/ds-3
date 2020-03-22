@@ -1,6 +1,7 @@
 ﻿using System;
 using NATS.Client;
 using Subscriber;
+using StackExchange.Redis;
 
 namespace JobLogger
 {
@@ -12,10 +13,10 @@ namespace JobLogger
         {
             var subscriber = new SubscriberService();
 
-            string uri = "nats://" + Environment.GetEnvironmentVariable("NATS_HOST");
-            using (IConnection connection = new ConnectionFactory().CreateConnection(uri))
+            using (IConnection nats = new ConnectionFactory().CreateConnection("nats://" + Environment.GetEnvironmentVariable("NATS_HOST")))
+            using (ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(Environment.GetEnvironmentVariable("REDIS_HOST")))
             {
-                subscriber.Run(connection);
+                subscriber.Run(nats, redis);
 
                 Console.WriteLine("JobLogger service is started");
 
